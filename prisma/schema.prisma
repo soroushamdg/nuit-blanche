@@ -1,0 +1,18 @@
+// Local SQLite database — no separate server needed.
+// File is created at prisma/dev.db (or path in DATABASE_URL).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Add your models here. Example:
+// model Post {
+//   id        Int      @id @default(autoincrement())
+//   title     String
+//   content   String?
+//   createdAt DateTime @default(now())
+// }
