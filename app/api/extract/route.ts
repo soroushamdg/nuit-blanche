@@ -38,25 +38,69 @@ interface NominatimResult {
  * Returns lat/lng for Montreal-area addresses.
  */
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  const encodedAddress = encodeURIComponent(address);
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&city=Montreal`;
+  console.log("[Geocode] Attempting to geocode address:", address);
+  
+  // Try Mapbox first if API key is available
+  const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+  if (mapboxToken) {
+    try {
+      const encodedAddress = encodeURIComponent(address);
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?proximity=-73.5673,45.5017&country=CA&limit=1&access_token=${mapboxToken}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.log("[Geocode] Mapbox API request failed:", response.status);
+      } else {
+        const data = await response.json();
+        console.log("[Geocode] Mapbox API response:", data);
+        
+        if (data.features && data.features.length > 0) {
+          const [lng, lat] = data.features[0].center;
+          const coords = { lat, lng };
+          console.log("[Geocode] Mapbox successfully geocoded to:", coords);
+          return coords;
+        }
+      }
+    } catch (error) {
+      console.log("[Geocode] Mapbox error:", error);
+    }
+  }
+  
+  // Fallback to Nominatim
+  try {
+    const encodedAddress = encodeURIComponent(address);
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodedAddress}&city=Montreal`;
 
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": "NuitBlanchePlanner/1.0 (https://github.com/nuit-blanche)",
-    },
-  });
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "NuitBlanchePlanner/1.0 (https://github.com/nuit-blanche)",
+      },
+    });
 
-  if (!response.ok) return null;
+    if (!response.ok) {
+      console.log("[Geocode] Nominatim API request failed:", response.status, response.statusText);
+      return null;
+    }
 
-  const results: NominatimResult[] = await response.json();
-  const first = results[0];
-  if (!first?.lat || !first?.lon) return null;
+    const results: NominatimResult[] = await response.json();
+    console.log("[Geocode] Nominatim API response:", results);
+    
+    const first = results[0];
+    if (!first?.lat || !first?.lon) {
+      console.log("[Geocode] No valid coordinates found in Nominatim response");
+      return null;
+    }
 
-  return {
-    lat: parseFloat(first.lat),
-    lng: parseFloat(first.lon),
-  };
+    const coords = {
+      lat: parseFloat(first.lat),
+      lng: parseFloat(first.lon),
+    };
+    console.log("[Geocode] Nominatim successfully geocoded to:", coords);
+    return coords;
+  } catch (error) {
+    console.log("[Geocode] Nominatim error during geocoding:", error);
+    return null;
+  }
 }
 
 const SYSTEM_PROMPT =
@@ -144,7 +188,13 @@ export async function POST(request: Request) {
       sourceUrl: url,
     };
 
-    console.log("[Extract API] Event added:", JSON.stringify(event, null, 2));
+    console.log("[Extract API] Event added with coordinates:", {
+      title: event.title,
+      address: event.address,
+      lat: event.lat,
+      lng: event.lng,
+      usedFallback: coords === null
+    });
 
     return NextResponse.json(event);
   } catch (err) {

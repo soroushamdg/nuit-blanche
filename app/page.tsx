@@ -21,31 +21,38 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
-  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(null);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState<number | null>(
+    null,
+  );
   const [sheetHeightPct, setSheetHeightPct] = useState(SHEET_DEFAULT_PCT);
   const dragStartY = useRef(0);
   const dragStartPct = useRef(0);
 
-  const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
-    const el = e.currentTarget as HTMLElement;
-    el.setPointerCapture(e.pointerId);
-    dragStartY.current = e.clientY;
-    dragStartPct.current = sheetHeightPct;
+  const handleResizePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      const el = e.currentTarget as HTMLElement;
+      el.setPointerCapture(e.pointerId);
+      dragStartY.current = e.clientY;
+      dragStartPct.current = sheetHeightPct;
 
-    const onMove = (moveEvent: PointerEvent) => {
-      const deltaY = dragStartY.current - moveEvent.clientY;
-      const pctPerPx = 0.2;
-      const next = dragStartPct.current + deltaY * pctPerPx;
-      setSheetHeightPct(Math.min(SHEET_MAX_PCT, Math.max(SHEET_MIN_PCT, Math.round(next))));
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      el.releasePointerCapture(e.pointerId);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }, [sheetHeightPct]);
+      const onMove = (moveEvent: PointerEvent) => {
+        const deltaY = dragStartY.current - moveEvent.clientY;
+        const pctPerPx = 0.2;
+        const next = dragStartPct.current + deltaY * pctPerPx;
+        setSheetHeightPct(
+          Math.min(SHEET_MAX_PCT, Math.max(SHEET_MIN_PCT, Math.round(next))),
+        );
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        el.releasePointerCapture(e.pointerId);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [sheetHeightPct],
+  );
 
   // Load itinerary from localStorage on mount
   useEffect(() => {
@@ -56,6 +63,39 @@ export default function Home() {
         if (Array.isArray(parsed)) {
           setEvents(parsed);
         }
+      } else {
+        // Add sample events for testing if no data exists
+        const sampleEvents: MapEvent[] = [
+          {
+            title: "Art Installation at Place des Arts",
+            description:
+              "Interactive light display showcasing Montreal's cultural heritage",
+            nearestMetro: "Place-des-Arts",
+            address: "175 Saint-Catherine St W, Montreal, QC H2X 1Y9",
+            lat: 45.5085,
+            lng: -73.5673,
+            locationName: "Place des Arts",
+          },
+          {
+            title: "Digital Art Exhibition",
+            description: "Contemporary digital artworks from local artists",
+            nearestMetro: "Berri-UQAM",
+            address: "300 Saint-Catherine St E, Montreal, QC H2W 1A2",
+            lat: 45.5152,
+            lng: -73.558,
+            locationName: "UQAM Art Gallery",
+          },
+          {
+            title: "Night Market Experience",
+            description: "Food vendors and artisan crafts under the stars",
+            nearestMetro: "Jean-Drapeau",
+            address: "1 Circuit Gilles Villeneuve, Montreal, QC H3C 1T9",
+            lat: 45.5087,
+            lng: -73.522,
+            locationName: "Parc Jean-Drapeau",
+          },
+        ];
+        setEvents(sampleEvents);
       }
     } catch {
       // ignore invalid or missing data
@@ -179,7 +219,10 @@ export default function Home() {
             </button>
           </form>
           {error && (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">
+            <p
+              className="mt-2 text-sm text-red-600 dark:text-red-400"
+              role="alert"
+            >
               {error}
             </p>
           )}
@@ -226,7 +269,9 @@ export default function Home() {
                     <a
                       href={
                         event.address
-                          ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(event.address)}`
+                          ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+                              event.address,
+                            )}`
                           : `https://www.google.com/maps/dir/?api=1&destination=${event.lat},${event.lng}`
                       }
                       target="_blank"
@@ -236,7 +281,17 @@ export default function Home() {
                       aria-label="Open in Google Maps"
                       title="Open in Google Maps"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5"
+                        aria-hidden
+                      >
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                         <circle cx="12" cy="10" r="3" />
                       </svg>
@@ -305,11 +360,15 @@ export default function Home() {
               aria-labelledby="delete-dialog-title"
             >
               <div className="w-full max-w-sm rounded-lg bg-white p-4 shadow-lg sm:p-5 dark:bg-zinc-900">
-                <h2 id="delete-dialog-title" className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <h2
+                  id="delete-dialog-title"
+                  className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+                >
                   Remove event?
                 </h2>
                 <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-                  Are you sure you want to remove this event from your itinerary?
+                  Are you sure you want to remove this event from your
+                  itinerary?
                 </p>
                 <div className="mt-4 flex justify-end gap-2">
                   <button
